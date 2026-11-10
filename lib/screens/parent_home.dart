@@ -4,6 +4,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/supabase_client.dart';
+import 'absence_screen.dart';
 
 class ParentHome extends StatefulWidget {
   final String name;
@@ -17,17 +18,22 @@ class _ParentHomeState extends State<ParentHome> {
   final _map = MapController();
   RealtimeChannel? _tripsChannel;
   RealtimeChannel? _pointsChannel;
+  RealtimeChannel? _attendanceChannel;
   Timer? _ticker;
   String? _tripId;
   LatLng? _van;
   DateTime? _lastUpdate;
   bool _loading = true;
 
+  Map<String, Map<String, dynamic>> _children = {};
+  final Set<String> _alerted = {}; // "tripId-studentId" already alerted
+  final List<String> _alerts = [];
+
   @override
   void initState() {
     super.initState();
+    _loadChildren();
     _loadActiveTrip();
-    // Watch for trips starting or ending
     _tripsChannel = supabase
         .channel('trips-changes')
         .onPostgresChanges(
@@ -37,7 +43,15 @@ class _ParentHomeState extends State<ParentHome> {
           callback: (_) => _loadActiveTrip(),
         )
         .subscribe();
-    // Refresh the "seconds ago" text every second
+    _attendanceChannel = supabase
+        .channel('attendance-changes')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.insert,
+          schema: 'public',
+          table: 'attendance_events',
+          callback: (payload) => _onAttendance(payload.newRecord),
+        )
+        .subscribe();
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted) setState(() {});
     });
@@ -48,7 +62,58 @@ class _ParentHomeState extends State<ParentHome> {
     _ticker?.cancel();
     if (_tripsChannel != null) supabase.removeChannel(_tripsChannel!);
     if (_pointsChannel != null) supabase.removeChannel(_pointsChannel!);
+    if (_attendanceChannel != null) supabase.removeChannel(_attendanceChannel!);
     super.dispose();
+  }
+
+  Future<void> _loadChildren() async {
+    try {
+      final rows = await supabase
+          .from('students')
+          .select('id, name, home_lat, home_lng, radius_m');
+      _children = {
+        for (final r in rows) r['id'] as String: Map<String, dynamic>.from(r)
+      };
+    } catch (_) {}
+  }
+
+  void _addAlert(String text) {
+    if (!mounted) return;
+    setState(() => _alerts.insert(0, text));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
+  }
+
+  // Near-home alert: fires once per trip per child
+  void _checkNearHome(LatLng van) {
+    if (_tripId == null) return;
+    for (final c in _children.values) {
+      final lat = c['home_lat'];
+      final lng = c['home_lng'];
+      if (lat == null || lng == null) continue;
+      final key = '$_tripId-${c['id']}';
+      if (_alerted.contains(key)) continue;
+      final meters = const Distance().as(
+        LengthUnit.Meter,
+        van,
+        LatLng((lat as num).toDouble(), (lng as num).toDouble()),
+      );
+      final radius = (c['radius_m'] as num?)?.toInt() ?? 500;
+      if (meters <= radius) {
+        _alerted.add(key);
+        _addAlert("Van is near ${c['name']}'s home (${meters.round()} m away)");
+      }
+    }
+  }
+
+  // Boarding / drop-off message from the driver's roll call
+  void _onAttendance(Map<String, dynamic> row) {
+    if (!mounted) return;
+    final child = _children[row['student_id']];
+    if (child == null) return;
+    final t = DateTime.parse(row['created_at'] as String).toLocal();
+    final time = TimeOfDay.fromDateTime(t).format(context);
+    final what = row['type'] == 'board' ? 'boarded the van' : 'got off the van';
+    _addAlert('${child['name']} $what at $time');
   }
 
   Future<void> _loadActiveTrip() async {
@@ -60,7 +125,7 @@ class _ParentHomeState extends State<ParentHome> {
           .order('started_at', ascending: false)
           .limit(1);
       final newId = rows.isEmpty ? null : rows.first['id'] as String;
-      if (!_loading && newId == _tripId) return; // nothing changed
+      if (!_loading && newId == _tripId) return;
 
       if (_pointsChannel != null) {
         await supabase.removeChannel(_pointsChannel!);
@@ -107,6 +172,7 @@ class _ParentHomeState extends State<ParentHome> {
       _van = p;
       _lastUpdate = DateTime.parse(row['created_at'] as String).toLocal();
     });
+    _checkNearHome(p);
     try {
       _map.move(p, _map.camera.zoom);
     } catch (_) {}
@@ -134,6 +200,14 @@ class _ParentHomeState extends State<ParentHome> {
         title: Text('Hi, ${widget.name}'),
         actions: [
           IconButton(
+            icon: const Icon(Icons.event_busy),
+            tooltip: 'Mark absence',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const AbsenceScreen()),
+            ),
+          ),
+          IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () => supabase.auth.signOut(),
           ),
@@ -147,11 +221,29 @@ class _ParentHomeState extends State<ParentHome> {
             padding: const EdgeInsets.all(12),
             child: Text(banner, textAlign: TextAlign.center),
           ),
+          ..._alerts.take(3).map(
+                (a) => Container(
+                  width: double.infinity,
+                  color: Colors.indigo.shade50,
+                  padding: const EdgeInsets.only(left: 12),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.notifications_active, size: 18),
+                      const SizedBox(width: 8),
+                      Expanded(child: Text(a)),
+                      IconButton(
+                        icon: const Icon(Icons.close, size: 18),
+                        onPressed: () => setState(() => _alerts.remove(a)),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
           Expanded(
             child: FlutterMap(
               mapController: _map,
               options: const MapOptions(
-                initialCenter: LatLng(6.9271, 79.8612), // Colombo
+                initialCenter: LatLng(6.9271, 79.8612),
                 initialZoom: 15,
               ),
               children: [
