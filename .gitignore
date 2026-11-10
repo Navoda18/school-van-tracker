@@ -40,6 +40,7 @@ app.*.symbols
 app.*.map.json
 
 # Android Studio will place build artifacts here
+/lib/config.dart
 /android/app/debug
 /android/app/profile
 /android/app/release
@@ -47,4 +48,3 @@ app.*.map.json
 # Widget Preview related
 .widget_preview/
 
-/lib/config.dart
