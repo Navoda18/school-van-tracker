@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../services/location_service.dart';
 import '../services/supabase_client.dart';
+import '../widgets/roster_panel.dart';
 
 class DriverHome extends StatefulWidget {
   final String name;
@@ -129,6 +130,7 @@ class _DriverHomeState extends State<DriverHome> {
   }
 
   @override
+    @override
   Widget build(BuildContext context) {
     final active = _tripId != null;
     return Scaffold(
@@ -141,33 +143,40 @@ class _DriverHomeState extends State<DriverHome> {
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Icon(active ? Icons.gps_fixed : Icons.gps_off,
-                size: 72, color: active ? Colors.green : Colors.grey),
-            const SizedBox(height: 16),
-            Text(_status,
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: 8),
-            Text('Locations sent: $_sent', textAlign: TextAlign.center),
-            const SizedBox(height: 40),
-            FilledButton(
-              style: FilledButton.styleFrom(
-                minimumSize: const Size.fromHeight(80),
-                backgroundColor: active ? Colors.red : Colors.green,
-                textStyle: const TextStyle(fontSize: 22),
-              ),
-              onPressed: _busy ? null : (active ? _endTrip : _startTrip),
-              child: Text(active ? 'END TRIP' : 'START TRIP'),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(active ? Icons.gps_fixed : Icons.gps_off,
+                        color: active ? Colors.green : Colors.grey),
+                    const SizedBox(width: 8),
+                    Text(_status, style: Theme.of(context).textTheme.titleMedium),
+                  ],
+                ),
+                Text('Locations sent: $_sent', textAlign: TextAlign.center),
+                const SizedBox(height: 12),
+                FilledButton(
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size.fromHeight(72),
+                    backgroundColor: active ? Colors.red : Colors.green,
+                    textStyle: const TextStyle(fontSize: 22),
+                  ),
+                  onPressed: _busy ? null : (active ? _endTrip : _startTrip),
+                  child: Text(active ? 'END TRIP' : 'START TRIP'),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+          const Divider(height: 1),
+          Expanded(child: RosterPanel(tripId: _tripId)),
+        ],
       ),
     );
   }
-}
+  }
