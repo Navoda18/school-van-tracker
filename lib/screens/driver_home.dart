@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../services/location_service.dart';
 import '../services/supabase_client.dart';
 import '../widgets/roster_panel.dart';
+import '../services/error_text.dart';
 
 class DriverHome extends StatefulWidget {
   final String name;
@@ -75,7 +76,7 @@ class _DriverHomeState extends State<DriverHome> {
       _startSending();
       if (mounted) setState(() => _status = 'Trip started');
     } catch (e) {
-      _msg('Could not start the trip. Check your internet connection.');
+            _msg(friendlyError(e));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -122,7 +123,7 @@ class _DriverHomeState extends State<DriverHome> {
       _tripId = null;
       if (mounted) setState(() => _status = 'Trip ended');
     } catch (e) {
-      _msg('Could not end the trip. Try again.');
+            _msg(friendlyError(e));
       _startSending(); // the trip is still active, so keep sending
     } finally {
       if (mounted) setState(() => _busy = false);

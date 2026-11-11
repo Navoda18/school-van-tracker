@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/absence_rules.dart';
 import '../services/supabase_client.dart';
+import '../services/error_text.dart';
 
 class AbsenceScreen extends StatefulWidget {
   const AbsenceScreen({super.key});
@@ -80,12 +81,8 @@ class _AbsenceScreenState extends State<AbsenceScreen> {
       });
       _msg('Absence saved.');
       await _load();
-    } on PostgrestException catch (e) {
-      _msg(e.code == '23505'
-          ? 'This absence is already saved.'
-          : 'Could not save. Try again.');
-    } catch (e) {
-      _msg('Could not save. Check your internet connection.');
+        } catch (e) {
+      _msg(friendlyError(e));
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -100,7 +97,7 @@ class _AbsenceScreenState extends State<AbsenceScreen> {
       await supabase.from('absences').delete().eq('id', a['id']);
       await _load();
     } catch (e) {
-      _msg('Could not cancel. Try again.');
+            _msg(friendlyError(e));
     }
   }
 
