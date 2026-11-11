@@ -16,7 +16,16 @@ class VanApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'School Van Tracker',
-      theme: ThemeData(colorSchemeSeed: Colors.indigo, useMaterial3: true),
+           theme: ThemeData(
+        colorSchemeSeed: Colors.indigo,
+        useMaterial3: true,
+        filledButtonTheme: FilledButtonThemeData(
+          style: FilledButton.styleFrom(
+            minimumSize: const Size(64, 52),
+            textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          ),
+        ),
+      ),
       home: const AuthGate(),
     );
   }

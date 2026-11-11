@@ -24,6 +24,7 @@ class _ParentHomeState extends State<ParentHome> {
   LatLng? _van;
   DateTime? _lastUpdate;
   bool _loading = true;
+    bool _loadFailed = false;
 
   Map<String, Map<String, dynamic>> _children = {};
   final Set<String> _alerted = {}; // "tripId-studentId" already alerted
@@ -125,7 +126,7 @@ class _ParentHomeState extends State<ParentHome> {
           .order('started_at', ascending: false)
           .limit(1);
       final newId = rows.isEmpty ? null : rows.first['id'] as String;
-      if (!_loading && newId == _tripId) return;
+      if (!_loading && !_loadFailed && newId == _tripId) return;
 
       if (_pointsChannel != null) {
         await supabase.removeChannel(_pointsChannel!);
@@ -159,9 +160,9 @@ class _ParentHomeState extends State<ParentHome> {
             )
             .subscribe();
       }
-      if (mounted) setState(() => _loading = false);
+      if (mounted) setState(() { _loading = false; _loadFailed = false; });
     } catch (e) {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) setState(() { _loading = false; _loadFailed = true; });
     }
   }
 
@@ -184,7 +185,11 @@ class _ParentHomeState extends State<ParentHome> {
     Color bannerColor = Colors.grey.shade300;
     if (_loading) {
       banner = 'Loading...';
-    } else if (_tripId == null) {
+      }
+      else if (_loadFailed){
+        banner = 'Could not load. Check your internet connection.';
+        bannerColor = Colors.red.shade100;
+        }else if (_tripId == null) {
       banner = 'No active trip right now';
     } else if (_lastUpdate == null) {
       banner = 'Trip started. Waiting for the first location...';
@@ -206,6 +211,14 @@ class _ParentHomeState extends State<ParentHome> {
               context,
               MaterialPageRoute(builder: (_) => const AbsenceScreen()),
             ),
+          ),
+                    IconButton(
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Refresh',
+            onPressed: () {
+              setState(() => _loading = true);
+              _loadActiveTrip();
+            },
           ),
           IconButton(
             icon: const Icon(Icons.logout),
