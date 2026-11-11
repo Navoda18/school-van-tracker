@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import '../services/error_text.dart';
 import '../services/location_service.dart';
 import '../services/supabase_client.dart';
+import '../theme.dart';
 import '../widgets/roster_panel.dart';
-import '../services/error_text.dart';
 
 class DriverHome extends StatefulWidget {
   final String name;
@@ -20,10 +22,12 @@ class _DriverHomeState extends State<DriverHome> {
   bool _sending = false;
   int _sent = 0;
   String _status = 'No active trip';
+  String? _code;
 
   @override
   void initState() {
     super.initState();
+    _loadCode();
     _resumeIfActive();
   }
 
@@ -38,7 +42,18 @@ class _DriverHomeState extends State<DriverHome> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
   }
 
-  // If the app was closed during a trip, continue that trip.
+  Future<void> _loadCode() async {
+    try {
+      final uid = supabase.auth.currentUser!.id;
+      final row = await supabase
+          .from('profiles')
+          .select('driver_code')
+          .eq('id', uid)
+          .single();
+      if (mounted) setState(() => _code = row['driver_code'] as String?);
+    } catch (_) {}
+  }
+
   Future<void> _resumeIfActive() async {
     try {
       final uid = supabase.auth.currentUser!.id;
@@ -76,7 +91,7 @@ class _DriverHomeState extends State<DriverHome> {
       _startSending();
       if (mounted) setState(() => _status = 'Trip started');
     } catch (e) {
-            _msg(friendlyError(e));
+      _msg(friendlyError(e));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -123,15 +138,14 @@ class _DriverHomeState extends State<DriverHome> {
       _tripId = null;
       if (mounted) setState(() => _status = 'Trip ended');
     } catch (e) {
-            _msg(friendlyError(e));
-      _startSending(); // the trip is still active, so keep sending
+      _msg(friendlyError(e));
+      _startSending();
     } finally {
       if (mounted) setState(() => _busy = false);
     }
   }
 
   @override
-    @override
   Widget build(BuildContext context) {
     final active = _tripId != null;
     return Scaffold(
@@ -146,6 +160,50 @@ class _DriverHomeState extends State<DriverHome> {
       ),
       body: Column(
         children: [
+          Container(
+            width: double.infinity,
+            color: busYellow,
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(16, 10, 8, 10),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.vpn_key_rounded, color: ink),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Your van code',
+                            style: TextStyle(fontSize: 12)),
+                        Text(_code ?? '...',
+                            style: const TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 3)),
+                        const Text('Share it with parents so they can link',
+                            style: TextStyle(fontSize: 11)),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.copy_rounded),
+                    tooltip: 'Copy',
+                    onPressed: _code == null
+                        ? null
+                        : () {
+                            Clipboard.setData(ClipboardData(text: _code!));
+                            _msg('Code copied');
+                          },
+                  ),
+                ],
+              ),
+            ),
+          ),
           Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -157,7 +215,8 @@ class _DriverHomeState extends State<DriverHome> {
                     Icon(active ? Icons.gps_fixed : Icons.gps_off,
                         color: active ? Colors.green : Colors.grey),
                     const SizedBox(width: 8),
-                    Text(_status, style: Theme.of(context).textTheme.titleMedium),
+                    Text(_status,
+                        style: Theme.of(context).textTheme.titleMedium),
                   ],
                 ),
                 Text('Locations sent: $_sent', textAlign: TextAlign.center),
@@ -166,7 +225,8 @@ class _DriverHomeState extends State<DriverHome> {
                   style: FilledButton.styleFrom(
                     minimumSize: const Size.fromHeight(72),
                     backgroundColor: active ? Colors.red : Colors.green,
-                    textStyle: const TextStyle(fontSize: 22),
+                    textStyle: const TextStyle(
+                        fontSize: 22, fontWeight: FontWeight.w800),
                   ),
                   onPressed: _busy ? null : (active ? _endTrip : _startTrip),
                   child: Text(active ? 'END TRIP' : 'START TRIP'),
@@ -180,4 +240,4 @@ class _DriverHomeState extends State<DriverHome> {
       ),
     );
   }
-  }
+}
