@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/supabase_client.dart';
+import '../theme.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -56,12 +57,30 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Icon(Icons.directions_bus, size: 72),
-                const SizedBox(height: 8),
+                                Center(
+                  child: Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: busYellow,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: ink, width: 3),
+                    ),
+                    child: const Icon(Icons.directions_bus_rounded,
+                        size: 56, color: ink),
+                  ),
+                ),
+                const SizedBox(height: 16),
                 Text('School Van Tracker',
                     textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.headlineSmall),
-                const SizedBox(height: 24),
+                    style: Theme.of(context)
+                        .textTheme
+                        .headlineSmall
+                        ?.copyWith(fontWeight: FontWeight.w800, color: ink)),
+                const SizedBox(height: 4),
+                Text('Know where the van is, every day',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodyMedium),
+                const SizedBox(height: 28),
                 if (_isSignUp) ...[
                   TextField(
                     controller: _name,
