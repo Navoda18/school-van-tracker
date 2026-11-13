@@ -6,6 +6,9 @@ import '../services/location_service.dart';
 import '../services/supabase_client.dart';
 import '../theme.dart';
 import '../widgets/roster_panel.dart';
+import 'driver_add_child_screen.dart';
+import 'attendance_screen.dart';
+import 'attendance_log_screen.dart';
 
 class DriverHome extends StatefulWidget {
   final String name;
@@ -230,6 +233,33 @@ class _DriverHomeState extends State<DriverHome> {
                   ),
                   onPressed: _busy ? null : (active ? _endTrip : _startTrip),
                   child: Text(active ? 'END TRIP' : 'START TRIP'),
+                ),
+              ],
+            ),
+          ),
+                    Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.person_add_alt_1, size: 18),
+                  label: const Text('Add child'),
+                  onPressed: () => Navigator.push(context,
+                      MaterialPageRoute(builder: (_) => const DriverAddChildScreen())),
+                ),
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.checklist, size: 18),
+                  label: const Text("Today's list"),
+                  onPressed: () => Navigator.push(context,
+                      MaterialPageRoute(builder: (_) => const AttendanceScreen())),
+                ),
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.history, size: 18),
+                  label: const Text('Log'),
+                  onPressed: () => Navigator.push(context,
+                      MaterialPageRoute(builder: (_) => const AttendanceLogScreen())),
                 ),
               ],
             ),

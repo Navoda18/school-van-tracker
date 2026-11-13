@@ -41,8 +41,15 @@ ThemeData buildTheme() {
         textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
       ),
     ),
-    textButtonTheme: TextButtonThemeData(
+        textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(foregroundColor: ink),
+    ),
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: OutlinedButton.styleFrom(
+        foregroundColor: ink,
+        side: const BorderSide(color: ink),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
     ),
     floatingActionButtonTheme: const FloatingActionButtonThemeData(
       backgroundColor: busYellow,
