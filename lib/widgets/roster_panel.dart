@@ -26,12 +26,24 @@ class _RosterPanelState extends State<RosterPanel> {
   void initState() {
     super.initState();
     _load();
-    _channel = supabase
+        _channel = supabase
         .channel('roster-absences')
         .onPostgresChanges(
           event: PostgresChangeEvent.all,
           schema: 'public',
           table: 'absences',
+          callback: (_) => _load(),
+        )
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'attendance_checks',
+          callback: (_) => _load(),
+        )
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'students',
           callback: (_) => _load(),
         )
         .subscribe();
@@ -72,10 +84,19 @@ class _RosterPanelState extends State<RosterPanel> {
 
       final session = currentSession();
       final absent = <String>{};
-      for (final a in absences) {
+            for (final a in absences) {
         if (a['session'] == session || a['session'] == 'full_day') {
           absent.add(a['student_id'] as String);
         }
+      }
+      // children the driver unticked in "Today's list" are skipped too
+      final ticks = await supabase
+          .from('attendance_checks')
+          .select('student_id, coming')
+          .eq('date', dateOnly(DateTime.now()))
+          .eq('session', session);
+      for (final t in ticks) {
+        if (t['coming'] == false) absent.add(t['student_id'] as String);
       }
 
       final state = <String, String>{};
