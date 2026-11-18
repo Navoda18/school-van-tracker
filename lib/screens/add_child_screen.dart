@@ -71,13 +71,17 @@ class _AddChildScreenState extends State<AddChildScreen> {
     }
     setState(() => _saving = true);
     try {
-      await supabase.rpc('add_child', params: {
+            final id = await supabase.rpc('add_child', params: {
         'p_name': name,
         'p_code': code,
         'p_lat': _home!.latitude,
         'p_lng': _home!.longitude,
       });
       if (!mounted) return;
+      if (id == null) {
+        _msg('Driver code not found. Please check it with the driver.');
+        return;
+      }
       Navigator.pop(context, true);
     } on PostgrestException catch (e) {
       // P0001 = a message we wrote ourselves in the database function

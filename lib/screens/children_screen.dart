@@ -89,7 +89,11 @@ class _ChildrenScreenState extends State<ChildrenScreen> {
       return;
     }
     try {
-      await supabase.rpc('claim_child', params: {'p_code': code});
+            final id = await supabase.rpc('claim_child', params: {'p_code': code});
+      if (id == null) {
+        _msg('Child code not found or already used.');
+        return;
+      }
       _msg('Child linked to your account.');
       _load();
     } catch (e) {
