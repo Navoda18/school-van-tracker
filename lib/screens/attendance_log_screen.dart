@@ -94,6 +94,17 @@ class _AttendanceLogScreenState extends State<AttendanceLogScreen> {
     }
   }
 
+    String _subtitle(Map<String, dynamic> r) {
+    String t(dynamic v) => TimeOfDay.fromDateTime(
+            DateTime.parse(v as String).toLocal())
+        .format(context);
+    final parts = [sessionLabel(r['session'] as String)];
+    if (r['boarded_at'] != null) parts.add('Boarded ${t(r['boarded_at'])}');
+    if (r['dropped_at'] != null) parts.add('Dropped ${t(r['dropped_at'])}');
+    return parts.join(' · ');
+  }
+
+
   String _dayTitle(String day) {
     final d = DateTime.parse(day);
     return '${_weekdays[d.weekday - 1]}  $day';
@@ -196,8 +207,7 @@ class _AttendanceLogScreenState extends State<AttendanceLogScreen> {
                                     ListTile(
                                       dense: true,
                                       title: Text(r['student_name'] as String),
-                                      subtitle: Text(
-                                          sessionLabel(r['session'] as String)),
+                                                                            subtitle: Text(_subtitle(r)),
                                       trailing: Container(
                                         padding: const EdgeInsets.symmetric(
                                             horizontal: 10, vertical: 4),
