@@ -3,6 +3,7 @@ import '../services/absence_rules.dart';
 import '../services/error_text.dart';
 import '../services/supabase_client.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../services/log_export.dart';
 
 class AttendanceLogScreen extends StatefulWidget {
   const AttendanceLogScreen({super.key});
@@ -93,6 +94,20 @@ class _AttendanceLogScreenState extends State<AttendanceLogScreen> {
         return Colors.grey.shade300;
     }
   }
+    Future<void> _export(String kind, List<Map<String, dynamic>> rows) async {
+    try {
+      final from = dateOnly(_range.start);
+      final to = dateOnly(_range.end);
+      if (kind == 'csv') {
+        await LogExport.shareCsv(rows, from, to);
+      } else {
+        await LogExport.sharePdf(rows, from, to);
+      }
+    } catch (e) {
+      debugPrint('export error: $e');
+      _msg('Could not create the file. Please try again.');
+    }
+  }
 
     String _subtitle(Map<String, dynamic> r) {
     String t(dynamic v) => TimeOfDay.fromDateTime(
@@ -128,7 +143,21 @@ class _AttendanceLogScreenState extends State<AttendanceLogScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Attendance log')),
+      appBar: AppBar(
+        title: const Text('Attendance log'),
+        actions: [
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.ios_share),
+            tooltip: 'Export',
+            enabled: shown.isNotEmpty,
+            onSelected: (v) => _export(v, shown),
+            itemBuilder: (_) => const [
+              PopupMenuItem(value: 'csv', child: Text('Export as CSV')),
+              PopupMenuItem(value: 'pdf', child: Text('Export as PDF')),
+            ],
+          ),
+        ],
+      ),
       body: Column(
         children: [
           Padding(
