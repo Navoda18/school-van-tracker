@@ -10,6 +10,8 @@ import 'driver_add_child_screen.dart';
 import 'attendance_screen.dart';
 import 'attendance_log_screen.dart';
 import 'driver_children_screen.dart';
+import '../services/holiday_service.dart';
+import 'holidays_screen.dart';
 
 class DriverHome extends StatefulWidget {
   final String name;
@@ -27,11 +29,13 @@ class _DriverHomeState extends State<DriverHome> {
   int _sent = 0;
   String _status = 'No active trip';
   String? _code;
+    Map<String, dynamic>? _holiday;
 
   @override
   void initState() {
     super.initState();
-    _loadCode();
+        _loadCode();
+    _loadHoliday();
     _resumeIfActive();
   }
 
@@ -44,6 +48,11 @@ class _DriverHomeState extends State<DriverHome> {
   void _msg(String m) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
+  }
+
+    Future<void> _loadHoliday() async {
+    final h = await HolidayService.today();
+    if (mounted) setState(() => _holiday = h);
   }
 
   Future<void> _loadCode() async {
@@ -76,7 +85,28 @@ class _DriverHomeState extends State<DriverHome> {
     } catch (_) {}
   }
 
-  Future<void> _startTrip() async {
+    Future<void> _startTrip() async {
+    final h = await HolidayService.today();
+    if (h != null) {
+      if (!mounted) return;
+      final go = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Today is a holiday'),
+          content: Text('${h['name'] ?? 'Holiday'} is marked as a holiday. '
+              'Parents will see the van live if you start a trip. Start anyway?'),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Cancel')),
+            FilledButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('Start anyway')),
+          ],
+        ),
+      );
+      if (go != true) return;
+    }
     setState(() => _busy = true);
     try {
       final err = await LocationService.ensurePermission();
@@ -256,7 +286,18 @@ class _DriverHomeState extends State<DriverHome> {
                   onPressed: () => Navigator.push(context,
                       MaterialPageRoute(builder: (_) => const AttendanceScreen())),
                 ),
-                                OutlinedButton.icon(
+                                 OutlinedButton.icon(
+                  icon: const Icon(Icons.event, size: 18),
+                  label: const Text('Holidays'),
+                  onPressed: () async {
+                    await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const HolidaysScreen(canEdit: true)));
+                    _loadHoliday();
+                  },
+                ),
+                OutlinedButton.icon(
                   icon: const Icon(Icons.groups, size: 18),
                   label: const Text('My van'),
                   onPressed: () => Navigator.push(context,
@@ -271,6 +312,24 @@ class _DriverHomeState extends State<DriverHome> {
               ],
             ),
           ),
+                    if (_holiday != null)
+            Container(
+              width: double.infinity,
+              color: const Color(0xFFFFEFB8),
+              padding: const EdgeInsets.all(12),
+              child: Row(
+                children: [
+                  const Icon(Icons.beach_access, color: ink),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Holiday today: ${_holiday!['name'] ?? 'No school'}',
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           const Divider(height: 1),
           Expanded(child: RosterPanel(tripId: _tripId)),
         ],

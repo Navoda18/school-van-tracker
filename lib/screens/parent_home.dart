@@ -7,6 +7,8 @@ import '../services/supabase_client.dart';
 import '../theme.dart';
 import 'absence_screen.dart';
 import 'children_screen.dart';
+import '../services/holiday_service.dart';
+import 'holidays_screen.dart';
 
 class ParentHome extends StatefulWidget {
   final String name;
@@ -31,6 +33,7 @@ class _ParentHomeState extends State<ParentHome> {
   bool _loadFailed = false;
   bool _zoomed = false; // zoomed to the van for this trip yet?
   bool _following = true; // does the map follow the van?
+    Map<String, dynamic>? _holiday;
 
   Map<String, Map<String, dynamic>> _children = {};
   bool _childrenLoaded = false;
@@ -61,7 +64,8 @@ class _ParentHomeState extends State<ParentHome> {
           callback: (payload) => _onAttendance(payload.newRecord),
         )
         .subscribe();
-    _poller = Timer.periodic(const Duration(seconds: 5), (_) => _pollEvents());
+            _poller = Timer.periodic(const Duration(seconds: 5), (_) => _pollEvents());
+    _loadHoliday();
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted) setState(() {});
     });
@@ -75,6 +79,11 @@ class _ParentHomeState extends State<ParentHome> {
     if (_pointsChannel != null) supabase.removeChannel(_pointsChannel!);
     if (_attendanceChannel != null) supabase.removeChannel(_attendanceChannel!);
     super.dispose();
+  }
+
+  Future<void> _loadHoliday() async {
+    final h = await HolidayService.today();
+    if (mounted) setState(() => _holiday = h);
   }
 
   Future<void> _loadChildren() async {
@@ -317,6 +326,17 @@ class _ParentHomeState extends State<ParentHome> {
               _loadActiveTrip();
             },
           ),
+                    IconButton(
+            icon: const Icon(Icons.event),
+            tooltip: 'Holidays',
+            onPressed: () async {
+              await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => const HolidaysScreen(canEdit: false)));
+              _loadHoliday();
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.family_restroom),
             tooltip: 'My children',
@@ -388,6 +408,29 @@ class _ParentHomeState extends State<ParentHome> {
                     ],
                   ),
                 ),
+                             if (_holiday != null)
+                  Container(
+                    width: double.infinity,
+                    margin: const EdgeInsets.only(top: 6),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: busYellow,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.beach_access, color: ink),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'Holiday today: ${_holiday!['name'] ?? 'No school'}',
+                            style: const TextStyle(
+                                fontWeight: FontWeight.w700, color: ink),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 for (final a in _alerts.take(3))
                   Container(
                     width: double.infinity,
