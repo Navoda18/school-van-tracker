@@ -9,7 +9,8 @@ import '../services/supabase_client.dart';
 import '../theme.dart';
 
 class DriverAddChildScreen extends StatefulWidget {
-  const DriverAddChildScreen({super.key});
+  final Map<String, dynamic>? existing; // set when editing
+  const DriverAddChildScreen({super.key, this.existing});
 
   @override
   State<DriverAddChildScreen> createState() => _DriverAddChildScreenState();
@@ -24,6 +25,22 @@ class _DriverAddChildScreenState extends State<DriverAddChildScreen> {
   LatLng? _pin;
   bool _saving = false;
   bool _locating = false;
+
+    @override
+  void initState() {
+    super.initState();
+    final c = widget.existing;
+    if (c != null) {
+      _name.text = (c['name'] as String?) ?? '';
+      _school.text = (c['school'] as String?) ?? '';
+      _address.text = (c['pickup_address'] as String?) ?? '';
+      if (c['home_lat'] != null && c['home_lng'] != null) {
+        _pin = LatLng((c['home_lat'] as num).toDouble(),
+            (c['home_lng'] as num).toDouble());
+      }
+    }
+  }
+
 
   @override
   void dispose() {
@@ -109,7 +126,20 @@ class _DriverAddChildScreenState extends State<DriverAddChildScreen> {
     if (_pin == null) return _msg('Please tap the map to set the pickup pin.');
 
     setState(() => _saving = true);
-    try {
+        try {
+      if (widget.existing != null) {
+        await supabase.rpc('driver_update_child', params: {
+          'p_id': widget.existing!['id'],
+          'p_name': name,
+          'p_school': school,
+          'p_address': address,
+          'p_lat': _pin!.latitude,
+          'p_lng': _pin!.longitude,
+        });
+        if (!mounted) return;
+        Navigator.pop(context, true);
+        return;
+      }
       final code = await supabase.rpc('driver_add_child', params: {
         'p_name': name,
         'p_school': school,
@@ -134,7 +164,8 @@ class _DriverAddChildScreenState extends State<DriverAddChildScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Add a child to my van')),
+            appBar: AppBar(
+          title: Text(widget.existing == null ? 'Add a child to my van' : 'Edit child')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -161,7 +192,8 @@ class _DriverAddChildScreenState extends State<DriverAddChildScreen> {
           ),
           const SizedBox(height: 12),
           TextField(
-            controller: _email,
+             controller: _email,
+            enabled: widget.existing == null,
             keyboardType: TextInputType.emailAddress,
             decoration: const InputDecoration(
               labelText: "Parent's email (optional)",
@@ -187,8 +219,8 @@ class _DriverAddChildScreenState extends State<DriverAddChildScreen> {
               child: FlutterMap(
                 mapController: _map,
                 options: MapOptions(
-                  initialCenter: const LatLng(6.9271, 79.8612),
-                  initialZoom: 14,
+                                    initialCenter: _pin ?? const LatLng(6.9271, 79.8612),
+                  initialZoom: _pin == null ? 14 : 16,
                   onTap: (tapPosition, point) => setState(() => _pin = point),
                 ),
                 children: [
@@ -218,7 +250,7 @@ class _DriverAddChildScreenState extends State<DriverAddChildScreen> {
                     width: 20,
                     child: CircularProgressIndicator(
                         strokeWidth: 2, color: Colors.white))
-                : const Text('Add child'),
+                                : Text(widget.existing == null ? 'Add child' : 'Save changes'),
           ),
         ],
       ),

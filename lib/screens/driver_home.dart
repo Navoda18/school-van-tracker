@@ -9,6 +9,7 @@ import '../widgets/roster_panel.dart';
 import 'driver_add_child_screen.dart';
 import 'attendance_screen.dart';
 import 'attendance_log_screen.dart';
+import 'driver_children_screen.dart';
 
 class DriverHome extends StatefulWidget {
   final String name;
@@ -254,6 +255,12 @@ class _DriverHomeState extends State<DriverHome> {
                   label: const Text("Today's list"),
                   onPressed: () => Navigator.push(context,
                       MaterialPageRoute(builder: (_) => const AttendanceScreen())),
+                ),
+                                OutlinedButton.icon(
+                  icon: const Icon(Icons.groups, size: 18),
+                  label: const Text('My van'),
+                  onPressed: () => Navigator.push(context,
+                      MaterialPageRoute(builder: (_) => const DriverChildrenScreen())),
                 ),
                 OutlinedButton.icon(
                   icon: const Icon(Icons.history, size: 18),
