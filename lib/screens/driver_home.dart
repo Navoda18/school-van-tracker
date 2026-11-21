@@ -6,6 +6,7 @@ import '../services/location_service.dart';
 import '../services/supabase_client.dart';
 import '../theme.dart';
 import '../widgets/roster_panel.dart';
+import '../widgets/ui_kit.dart';
 import 'driver_add_child_screen.dart';
 import 'attendance_screen.dart';
 import 'attendance_log_screen.dart';
@@ -180,146 +181,168 @@ class _DriverHomeState extends State<DriverHome> {
   }
 
   @override
+    Future<void> _onTripButton() async {
+    HapticFeedback.mediumImpact();
+    if (_tripId == null) {
+      await _startTrip();
+      return;
+    }
+    final ok = await showConfirmSheet(
+      context,
+      title: 'End this trip?',
+      message: 'Parents will stop seeing the van live.',
+      confirmLabel: 'End trip',
+      destructive: true,
+    );
+    if (ok) await _endTrip();
+  }
+
+  Widget _stat(String label, String value,
+      {double size = 24, double spacing = 0}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label,
+            style: const TextStyle(
+                color: Color(0xFF94A3B8),
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 1)),
+        const SizedBox(height: 4),
+        Text(value,
+            style: TextStyle(
+                color: Colors.white,
+                fontSize: size,
+                fontWeight: FontWeight.w800,
+                letterSpacing: spacing,
+                fontFeatures: tabularFigures)),
+      ],
+    );
+  }
+
+  Widget _header(bool active) {
+    final problem = _status.startsWith('Could not');
+    final dot = problem
+        ? AppColors.danger
+        : (active ? AppColors.success : const Color(0xFF94A3B8));
+    final title = !active
+        ? 'Ready to start'
+        : (problem ? 'Trip on · reconnecting' : 'Trip in progress');
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.navy,
+        borderRadius: BorderRadius.circular(AppRadius.card),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 10,
+                height: 10,
+                decoration: BoxDecoration(color: dot, shape: BoxShape.circle),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(title,
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text('Hello, ${widget.name}',
+              style: const TextStyle(color: Color(0xFFCBD5E1))),
+          const SizedBox(height: 16),
+          _stat('LOCATIONS SENT', '$_sent'),
+          const Divider(color: Colors.white24, height: 24),
+          Row(
+            children: [
+              Expanded(child: _stat('VAN CODE', _code ?? '...', size: 20, spacing: 2)),
+              IconButton(
+                icon: const Icon(Icons.copy_rounded, color: Colors.white),
+                tooltip: 'Copy code',
+                onPressed: _code == null
+                    ? null
+                    : () {
+                        Clipboard.setData(ClipboardData(text: _code!));
+                        HapticFeedback.lightImpact();
+                        _msg('Code copied');
+                      },
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _tool(IconData icon, String label, VoidCallback onTap) {
+    return SizedBox(
+      width: 92,
+      child: AppCard(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 6),
+        onTap: onTap,
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: const BoxDecoration(
+                    color: Color(0xFFF1F5F9), shape: BoxShape.circle),
+                child: Icon(icon, color: AppColors.navy, size: 22),
+              ),
+              const SizedBox(height: 8),
+              Text(label,
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                      fontSize: 12, fontWeight: FontWeight.w700)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     final active = _tripId != null;
     return Scaffold(
       appBar: AppBar(
-        title: Text('Driver: ${widget.name}'),
+        title: const Text('Driver'),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
+            tooltip: 'Log out',
             onPressed: () => supabase.auth.signOut(),
           ),
         ],
       ),
       body: Column(
         children: [
-          Container(
-            width: double.infinity,
-            color: busYellow,
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-            child: Container(
-              padding: const EdgeInsets.fromLTRB(16, 10, 8, 10),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.vpn_key_rounded, color: ink),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('Your van code',
-                            style: TextStyle(fontSize: 12)),
-                        Text(_code ?? '...',
-                            style: const TextStyle(
-                                fontSize: 22,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: 3)),
-                        const Text('Share it with parents so they can link',
-                            style: TextStyle(fontSize: 11)),
-                      ],
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.copy_rounded),
-                    tooltip: 'Copy',
-                    onPressed: _code == null
-                        ? null
-                        : () {
-                            Clipboard.setData(ClipboardData(text: _code!));
-                            _msg('Code copied');
-                          },
-                  ),
-                ],
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(active ? Icons.gps_fixed : Icons.gps_off,
-                        color: active ? Colors.green : Colors.grey),
-                    const SizedBox(width: 8),
-                    Text(_status,
-                        style: Theme.of(context).textTheme.titleMedium),
-                  ],
-                ),
-                Text('Locations sent: $_sent', textAlign: TextAlign.center),
-                const SizedBox(height: 12),
-                FilledButton(
-                  style: FilledButton.styleFrom(
-                    minimumSize: const Size.fromHeight(72),
-                    backgroundColor: active ? Colors.red : Colors.green,
-                    textStyle: const TextStyle(
-                        fontSize: 22, fontWeight: FontWeight.w800),
-                  ),
-                  onPressed: _busy ? null : (active ? _endTrip : _startTrip),
-                  child: Text(active ? 'END TRIP' : 'START TRIP'),
-                ),
-              ],
-            ),
-          ),
-                    Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                OutlinedButton.icon(
-                  icon: const Icon(Icons.person_add_alt_1, size: 18),
-                  label: const Text('Add child'),
-                  onPressed: () => Navigator.push(context,
-                      MaterialPageRoute(builder: (_) => const DriverAddChildScreen())),
-                ),
-                OutlinedButton.icon(
-                  icon: const Icon(Icons.checklist, size: 18),
-                  label: const Text("Today's list"),
-                  onPressed: () => Navigator.push(context,
-                      MaterialPageRoute(builder: (_) => const AttendanceScreen())),
-                ),
-                                 OutlinedButton.icon(
-                  icon: const Icon(Icons.event, size: 18),
-                  label: const Text('Holidays'),
-                  onPressed: () async {
-                    await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) => const HolidaysScreen(canEdit: true)));
-                    _loadHoliday();
-                  },
-                ),
-                OutlinedButton.icon(
-                  icon: const Icon(Icons.groups, size: 18),
-                  label: const Text('My van'),
-                  onPressed: () => Navigator.push(context,
-                      MaterialPageRoute(builder: (_) => const DriverChildrenScreen())),
-                ),
-                OutlinedButton.icon(
-                  icon: const Icon(Icons.history, size: 18),
-                  label: const Text('Log'),
-                  onPressed: () => Navigator.push(context,
-                      MaterialPageRoute(builder: (_) => const AttendanceLogScreen())),
-                ),
-              ],
-            ),
-          ),
-                    if (_holiday != null)
+          _header(active),
+          if (_holiday != null)
             Container(
               width: double.infinity,
-              color: const Color(0xFFFFEFB8),
+              margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
               padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.amberSoft,
+                borderRadius: BorderRadius.circular(12),
+              ),
               child: Row(
                 children: [
-                  const Icon(Icons.beach_access, color: ink),
+                  const Icon(Icons.beach_access, color: AppColors.navy),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
@@ -330,9 +353,86 @@ class _DriverHomeState extends State<DriverHome> {
                 ],
               ),
             ),
-          const Divider(height: 1),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 116,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              children: [
+                _tool(Icons.person_add_alt_1, 'Add child', () {
+                  Navigator.push(context,
+                      MaterialPageRoute(builder: (_) => const DriverAddChildScreen()));
+                }),
+                const SizedBox(width: 8),
+                _tool(Icons.checklist, "Today's list", () {
+                  Navigator.push(context,
+                      MaterialPageRoute(builder: (_) => const AttendanceScreen()));
+                }),
+                const SizedBox(width: 8),
+                _tool(Icons.groups, 'My van', () {
+                  Navigator.push(context,
+                      MaterialPageRoute(builder: (_) => const DriverChildrenScreen()));
+                }),
+                const SizedBox(width: 8),
+                _tool(Icons.event, 'Holidays', () async {
+                  await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => const HolidaysScreen(canEdit: true)));
+                  _loadHoliday();
+                }),
+                const SizedBox(width: 8),
+                _tool(Icons.history, 'Log', () {
+                  Navigator.push(context,
+                      MaterialPageRoute(builder: (_) => const AttendanceLogScreen()));
+                }),
+              ],
+            ),
+          ),
           Expanded(child: RosterPanel(tripId: _tripId)),
         ],
+      ),
+      bottomNavigationBar: Container(
+        decoration: const BoxDecoration(
+          color: AppColors.surface,
+          border: Border(top: BorderSide(color: AppColors.border)),
+        ),
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: FilledButton(
+              style: FilledButton.styleFrom(
+                minimumSize: const Size.fromHeight(64),
+                backgroundColor: active ? AppColors.danger : AppColors.amber,
+                foregroundColor: active ? Colors.white : AppColors.navy,
+                textStyle: const TextStyle(
+                    fontSize: 18, fontWeight: FontWeight.w800, letterSpacing: 0.5),
+              ),
+              onPressed: _busy ? null : _onTripButton,
+              child: _busy
+                  ? SizedBox(
+                      height: 22,
+                      width: 22,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2.5,
+                          color: active ? Colors.white : AppColors.navy),
+                    )
+                  : Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(active
+                            ? Icons.stop_circle_outlined
+                            : Icons.play_circle_outline),
+                        const SizedBox(width: 8),
+                        Text(active ? 'END TRIP' : 'START TRIP'),
+                      ],
+                    ),
+            ),
+          ),
+        ),
       ),
     );
   }
