@@ -114,10 +114,11 @@ class _HolidaysScreenState extends State<HolidaysScreen> {
       } else if (e.code == '42501') {
         _msg('Could not save. Drivers can have up to 100 holidays.');
       } else {
-        _msg(friendlyError(e));
+        _msg('Error ${e.code}: ${e.message}');
       }
     } catch (e) {
-      _msg(friendlyError(e));
+      debugPrint('holiday error: $e');
+      _msg('Error: $e');
     }
   }
 
