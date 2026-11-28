@@ -3,6 +3,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/absence_rules.dart';
 import '../services/supabase_client.dart';
 import '../services/error_text.dart';
+import 'package:flutter/services.dart';
+import '../theme.dart';
+import '../widgets/ui_kit.dart';
 
 class AbsenceScreen extends StatefulWidget {
   const AbsenceScreen({super.key});
@@ -80,6 +83,7 @@ class _AbsenceScreenState extends State<AbsenceScreen> {
         'session': _session,
       });
       _msg('Absence saved.');
+      HapticFeedback.mediumImpact();
       await _load();
         } catch (e) {
       _msg(friendlyError(e));
@@ -94,7 +98,15 @@ class _AbsenceScreenState extends State<AbsenceScreen> {
       return;
     }
     try {
-      await supabase.from('absences').delete().eq('id', a['id']);
+      final ok = await showConfirmSheet(
+  context,
+  title: 'Cancel this absence?',
+  message: '${a['date']} · ${sessionLabel(a['session'] as String)}',
+  confirmLabel: 'Cancel absence',
+  destructive: true,
+);
+if (!ok) return;
+await supabase.from('absences').delete().eq('id', a['id']);
       await _load();
     } catch (e) {
             _msg(friendlyError(e));
@@ -109,9 +121,13 @@ class _AbsenceScreenState extends State<AbsenceScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Mark absence')),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const SkeletonList()
           : _students.isEmpty
-              ? const Center(child: Text('No children are linked to your account yet.'))
+             ? const EmptyState(
+    icon: Icons.family_restroom,
+    title: 'No children linked',
+    message: 'Add your child first from the home screen menu.',
+  )
               : ListView(
                   padding: const EdgeInsets.all(16),
                   children: [
@@ -153,6 +169,7 @@ class _AbsenceScreenState extends State<AbsenceScreen> {
                     ),
                     const SizedBox(height: 16),
                     FilledButton(
+                      style: accentButton,
                       onPressed: _saving ? null : _submit,
                       child: _saving
                           ? const SizedBox(

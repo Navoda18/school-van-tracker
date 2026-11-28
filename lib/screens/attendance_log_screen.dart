@@ -4,6 +4,7 @@ import '../services/error_text.dart';
 import '../services/supabase_client.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/log_export.dart';
+import '../widgets/ui_kit.dart';
 
 class AttendanceLogScreen extends StatefulWidget {
   const AttendanceLogScreen({super.key});
@@ -109,6 +110,21 @@ class _AttendanceLogScreenState extends State<AttendanceLogScreen> {
     }
   }
 
+  Widget _badge(String s) {
+  final label = _label(s);
+  switch (s) {
+    case 'coming':
+      return StatusBadge.success(label);
+    case 'absent_parent':
+      return StatusBadge.warning(label);
+    case 'absent_driver':
+      return StatusBadge.danger(label);
+    default:
+      return StatusBadge.neutral(label);
+  }
+}
+
+
     String _subtitle(Map<String, dynamic> r) {
     String t(dynamic v) => TimeOfDay.fromDateTime(
             DateTime.parse(v as String).toLocal())
@@ -195,26 +211,22 @@ class _AttendanceLogScreenState extends State<AttendanceLogScreen> {
               spacing: 8,
               runSpacing: 4,
               children: [
-                Chip(
-                    backgroundColor: _color('coming'),
-                    label: Text('${count('coming')} coming')),
-                Chip(
-                    backgroundColor: _color('absent_parent'),
-                    label: Text('${count('absent_parent')} absent (parent)')),
-                Chip(
-                    backgroundColor: _color('absent_driver'),
-                    label: Text('${count('absent_driver')} not coming')),
-                Chip(
-                    backgroundColor: _color('not_marked'),
-                    label: Text('${count('not_marked')} not marked')),
+                StatusBadge.success('${count('coming')} coming'),
+StatusBadge.warning('${count('absent_parent')} absent (parent)'),
+StatusBadge.danger('${count('absent_driver')} not coming'),
+StatusBadge.neutral('${count('not_marked')} not marked'),
               ],
             ),
           ),
           Expanded(
             child: _loading
-                ? const Center(child: CircularProgressIndicator())
+                ? const SkeletonList()
                 : days.isEmpty
-                    ? const Center(child: Text('No records for these dates'))
+                    ? const EmptyState(
+    icon: Icons.history,
+    title: 'No records',
+    message: 'Try a different date range.',
+  )
                     : ListView(
                         padding: const EdgeInsets.all(16),
                         children: [
@@ -237,18 +249,7 @@ class _AttendanceLogScreenState extends State<AttendanceLogScreen> {
                                       dense: true,
                                       title: Text(r['student_name'] as String),
                                                                             subtitle: Text(_subtitle(r)),
-                                      trailing: Container(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 10, vertical: 4),
-                                        decoration: BoxDecoration(
-                                          color: _color(r['status'] as String),
-                                          borderRadius: BorderRadius.circular(20),
-                                        ),
-                                        child: Text(_label(r['status'] as String),
-                                            style: const TextStyle(
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w600)),
-                                      ),
+                                      trailing: _badge(r['status'] as String),
                                     ),
                                 ],
                               ),

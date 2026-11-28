@@ -177,13 +177,14 @@ class _AddChildScreenState extends State<AddChildScreen> {
               child: SizedBox(
                 width: double.infinity,
                 child: FilledButton(
+                  style: accentButton,
                   onPressed: _saving ? null : _save,
                   child: _saving
                       ? const SizedBox(
                           height: 20,
                           width: 20,
                           child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.white))
+                              strokeWidth: 2, color: AppColors.navy))
                       : const Text('Link child to driver'),
                 ),
               ),

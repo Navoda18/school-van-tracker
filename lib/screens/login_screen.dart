@@ -61,12 +61,12 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: busYellow,
+                      color: AppColors.navy,
                       shape: BoxShape.circle,
-                      border: Border.all(color: ink, width: 3),
+                      border: Border.all(color: AppColors.amber, width: 3),
                     ),
                     child: const Icon(Icons.directions_bus_rounded,
-                        size: 56, color: ink),
+                        size: 56, color: AppColors.amber),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -110,6 +110,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 20),
                 FilledButton(
+                  style: accentButton,
                   onPressed: _loading ? null : _submit,
                   child: _loading
                       ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))

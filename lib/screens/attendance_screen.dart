@@ -4,6 +4,8 @@ import '../services/absence_rules.dart';
 import '../services/error_text.dart';
 import '../services/supabase_client.dart';
 import '../theme.dart';
+import 'package:flutter/services.dart';
+import '../widgets/ui_kit.dart';
 
 class AttendanceScreen extends StatefulWidget {
   const AttendanceScreen({super.key});
@@ -97,6 +99,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
 
   Future<void> _setComing(String id, bool coming) async {
     final before = _checks[id];
+    HapticFeedback.selectionClick();
     setState(() => _checks[id] = coming);
     try {
       await supabase
@@ -176,7 +179,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text("Today's list")),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const SkeletonList()
           : Column(
               children: [
                 Padding(
@@ -202,10 +205,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                     spacing: 8,
                     runSpacing: 4,
                     children: [
-                      Chip(label: Text('$coming coming')),
-                      Chip(label: Text('${_absent.length} absent (parent)')),
-                      if (notComing > 0) Chip(label: Text('$notComing not coming')),
-                      Chip(label: Text('$unmarked not marked')),
+                      StatusBadge.success('$coming coming', icon: Icons.check),
+StatusBadge.danger('${_absent.length} absent (parent)', icon: Icons.event_busy),
+if (notComing > 0) StatusBadge.warning('$notComing not coming'),
+StatusBadge.neutral('$unmarked not marked'),
                     ],
                   ),
                 ),
@@ -222,12 +225,21 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                 ),
                 Expanded(
                   child: _students.isEmpty
-                      ? const Center(
-                          child: Text(
-                              'No children on your van yet.\nAdd one from the driver screen.',
-                              textAlign: TextAlign.center),
-                        )
-                      : ListView(children: [for (final s in _students) _studentRow(s)]),
+                     ? const EmptyState(
+    icon: Icons.groups_outlined,
+    title: 'No children yet',
+    message: 'Add children from My van first.',
+  )
+                      : ListView(
+    padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+    children: [
+      for (final s in _students)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: AppCard(padding: EdgeInsets.zero, child: _studentRow(s)),
+        ),
+    ],
+  ),
                 ),
               ],
             ),

@@ -5,6 +5,7 @@ import '../services/error_text.dart';
 import '../services/holiday_service.dart';
 import '../services/supabase_client.dart';
 import '../theme.dart';
+import '../widgets/ui_kit.dart';
 
 class HolidaysScreen extends StatefulWidget {
   final bool canEdit;
@@ -263,7 +264,7 @@ class _HolidaysScreenState extends State<HolidaysScreen> {
             )
           : null,
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const SkeletonList()
           : ListView(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
               children: [

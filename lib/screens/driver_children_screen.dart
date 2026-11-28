@@ -4,6 +4,7 @@ import '../services/error_text.dart';
 import '../services/supabase_client.dart';
 import '../theme.dart';
 import 'driver_add_child_screen.dart';
+import '../widgets/ui_kit.dart';
 
 class DriverChildrenScreen extends StatefulWidget {
   const DriverChildrenScreen({super.key});
@@ -94,9 +95,15 @@ class _DriverChildrenScreenState extends State<DriverChildrenScreen> {
         label: const Text('Add child'),
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const SkeletonList()
           : _children.isEmpty
-              ? const Center(child: Text('No children on your van yet.'))
+              ? EmptyState(
+    icon: Icons.groups_outlined,
+    title: 'No children on your van yet',
+    message: 'Tap Add child to build your list.',
+    actionLabel: 'Add child',
+    onAction: () => _open(null),
+  )
               : ListView.builder(
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
                   itemCount: _children.length,
@@ -113,18 +120,20 @@ class _DriverChildrenScreenState extends State<DriverChildrenScreen> {
                       shape: softCardShape,
                       margin: const EdgeInsets.only(bottom: 10),
                       child: ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: busYellow,
-                          foregroundColor: ink,
-                          child: Text((c['name'] as String).isEmpty
-                              ? '?'
-                              : (c['name'] as String)[0].toUpperCase()),
-                        ),
+                        leading: InitialAvatar(name: c['name'] as String),
                         title: Text(c['name'] as String,
                             style: const TextStyle(fontWeight: FontWeight.w700)),
-                        subtitle: Text(
-                            '$detail\n${linked ? 'Parent linked' : 'Not linked yet · code ${c['claim_code'] ?? '-'}'}'),
-                        isThreeLine: true,
+                        subtitle: Column(
+  crossAxisAlignment: CrossAxisAlignment.start,
+  children: [
+    if (detail.isNotEmpty) Text(detail),
+    const SizedBox(height: 6),
+    linked
+        ? const StatusBadge.success('Parent linked', icon: Icons.link)
+        : StatusBadge.warning('Not linked · code ${c['claim_code'] ?? '-'}',
+            icon: Icons.vpn_key),
+  ],
+),
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [

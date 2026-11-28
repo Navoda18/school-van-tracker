@@ -243,13 +243,14 @@ class _DriverAddChildScreenState extends State<DriverAddChildScreen> {
           ),
           const SizedBox(height: 16),
           FilledButton(
+            style: accentButton,
             onPressed: _saving ? null : _save,
             child: _saving
                 ? const SizedBox(
                     height: 20,
                     width: 20,
                     child: CircularProgressIndicator(
-                        strokeWidth: 2, color: Colors.white))
+                        strokeWidth: 2, color: AppColors.navy))
                                 : Text(widget.existing == null ? 'Add child' : 'Save changes'),
           ),
         ],

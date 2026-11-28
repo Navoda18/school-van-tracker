@@ -4,6 +4,7 @@ import '../services/error_text.dart';
 import '../services/supabase_client.dart';
 import '../theme.dart';
 import 'add_child_screen.dart';
+import '../widgets/ui_kit.dart';
 
 class ChildrenScreen extends StatefulWidget {
   const ChildrenScreen({super.key});
@@ -179,24 +180,22 @@ class _ChildrenScreenState extends State<ChildrenScreen> {
         label: const Text('Add child'),
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const SkeletonList()
           : empty
-              ? const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(32),
-                    child: Text(
-                      'No children yet.\nTap "Add child" and use the code your driver gave you.',
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                )
+              ? EmptyState(
+    icon: Icons.family_restroom,
+    title: 'No children yet',
+    message: 'Tap Add child and enter the code your driver gave you.',
+    actionLabel: 'Add child',
+    onAction: _chooseHow,
+  )
               : ListView(
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
                   children: [
                     for (final inv in _invites)
                       Card(
                         elevation: 0,
-                        color: const Color(0xFFFFEFB8),
+                        color: AppColors.amberSoft,
                         shape: softCardShape,
                         margin: const EdgeInsets.only(bottom: 10),
                         child: ListTile(
@@ -218,13 +217,7 @@ class _ChildrenScreenState extends State<ChildrenScreen> {
                         shape: softCardShape,
                         margin: const EdgeInsets.only(bottom: 10),
                         child: ListTile(
-                          leading: CircleAvatar(
-                            backgroundColor: busYellow,
-                            foregroundColor: ink,
-                            child: Text((c['name'] as String).isEmpty
-                                ? '?'
-                                : (c['name'] as String)[0].toUpperCase()),
-                          ),
+                          leading: InitialAvatar(name: c['name'] as String),
                           title: Text(c['name'] as String,
                               style: const TextStyle(fontWeight: FontWeight.w700)),
                           subtitle: Text(
